@@ -71,6 +71,11 @@ int startup(unsigned short* port)
 	}
 	return server_socket;
 }
+//处理用户请求的线程函数
+DWORD WINAPI accept_request(LPVOID arg)
+{
+	return 0;
+}
 int main() {
 	unsigned short  port = 0;//如果是0 动态端口
 	//80端口被占用了
@@ -89,8 +94,13 @@ int main() {
 		{
 			error_die("accept");
 		}
-		//使用 client_sock 对用户进行访问
-
-
+		//创建一个新的线程  
+		// 进程（可以包含多个线程）
+		DWORD threadId = 0;//线程标志
+		CreateThread(0, 0,
+			accept_request,
+			(void*)client_sock,//accept_request  参数
+			0, &threadId);
 	}
+	closesocket(server_sock);//关闭主套接字
 }

@@ -73,7 +73,24 @@ int startup(unsigned short* port)
 }
 int main() {
 	unsigned short  port = 0;//如果是0 动态端口
+	//80端口被占用了
 	int server_sock = startup(&port);
 	printf("httpd服务已经启动，正在监听%d 端口...", port);
+	struct sockaddr_in client_addr;
+	int client_addr_len = sizeof(client_addr);
+	while (1)
+	{
+		//等待客户端访问
+		//阻塞式等待用户通过浏览器发起访问
+		int client_sock = accept(server_sock, 
+			(struct sockaddr*) & client_addr, 
+			&client_addr_len);//一对一 新的套接字 客户端套接字
+		if (client_sock == -1)
+		{
+			error_die("accept");
+		}
+		//使用 client_sock 对用户进行访问
 
+
+	}
 }

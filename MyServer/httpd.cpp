@@ -157,6 +157,8 @@ void server_file(int client, const char* fileName)
 	{
 		//正式发送资源给浏览器
 		headers(client);
+		//发送请求的资源信息
+
 	}
 }
 DWORD WINAPI accept_request(LPVOID arg)

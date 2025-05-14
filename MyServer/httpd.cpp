@@ -35,49 +35,49 @@ int startup(unsigned short* port)
 	int server_socket=socket(PF_INET,//套接字的类型
 		SOCK_STREAM,
 		IPPROTO_TCP);
-	if (server_socket == -1)
-	{
-		error_die("套接字");
-	}
-	//3.设置端口可复用
-	int opt = 1;
-	setsockopt(server_socket,
-		SOL_SOCKET, SO_REUSEADDR,
-		(const char*)& opt, sizeof(opt));
-	if (ret == -1) {
-		error_die("setsockopt");
-	}
-	//配置服务器端的网络地址
-	struct sockaddr_in server_addr;
-	memset(&server_addr, 0, sizeof(server_addr));
-	server_addr.sin_family = AF_INET;//网络地址类型
-	server_addr.sin_port = htons(*port);
-	server_addr.sin_addr.s_addr = htonl(INADDR_ANY);//0
-	//绑定套接字
-	//bind 一开始报错 因为命名冲突了 明确的指定为Windows socket的bind函数就好
-	if (::bind(server_socket,(struct sockaddr*)&server_addr,
-		sizeof(server_addr)) <0 )
-	{
-		error_die("bind");
-	}
-	// 动态分配端口
-	int nameLen = sizeof(server_addr);
-	if (*port == 0)
-	{
-		if (getsockname(server_socket,
-			(struct sockaddr*)&server_addr,
-			&nameLen) < 0)
+		if (server_socket == -1)
 		{
-			error_die("getsockname");
+			error_die("套接字");
 		}
-		*port = server_addr.sin_port;
-	}
-	//创建监听队列
-	if (listen(server_socket, 5) < 0)
-	{
-		error_die("listen");
-	}
-	return server_socket;
+		//3.设置端口可复用
+		int opt = 1;
+		setsockopt(server_socket,
+			SOL_SOCKET, SO_REUSEADDR,
+			(const char*)&opt, sizeof(opt));
+		if (ret == -1) {
+			error_die("setsockopt");
+		}
+		//配置服务器端的网络地址
+		struct sockaddr_in server_addr;
+		memset(&server_addr, 0, sizeof(server_addr));
+		server_addr.sin_family = AF_INET;//网络地址类型
+		server_addr.sin_port = htons(*port);
+		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);//0
+		//绑定套接字
+		//bind 一开始报错 因为命名冲突了 明确的指定为Windows socket的bind函数就好
+		if (::bind(server_socket, (struct sockaddr*)&server_addr,
+			sizeof(server_addr)) < 0)
+		{
+			error_die("bind");
+		}
+		// 动态分配端口
+		int nameLen = sizeof(server_addr);
+		if (*port == 0)
+		{
+			if (getsockname(server_socket,
+				(struct sockaddr*)&server_addr,
+				&nameLen) < 0)
+			{
+				error_die("getsockname");
+			}
+			*port = server_addr.sin_port;
+		}
+		//创建监听队列
+		if (listen(server_socket, 5) < 0)
+		{
+			error_die("listen");
+		}
+		return server_socket;
 }
 //处理用户请求的线程函数
 //接收浏览器的WEB请求
@@ -97,9 +97,9 @@ int get_line(int sock, char* buff, int size)
 {
 	char c = 0;
 	int i = 0;
-	while (i<size-1 && c!='\n') {
-		int n = recv(sock, &c, 1,0);
-		if (n > 0) { 
+	while (i < size - 1 && c != '\n') {
+		int n = recv(sock, &c, 1, 0);
+		if (n > 0) {
 			if (c == '\r')
 			{
 				n = recv(sock, &c, 1, MSG_PEEK);//检查下一个字符是不是\n
@@ -130,6 +130,34 @@ void unimplement(int client)
 void not_found(int client)
 {
 
+}
+
+void headers(int client)
+{
+	//发送相应包的头信息
+
+}
+//发送资源给客户端
+void server_file(int client, const char* fileName)
+{
+	int numchars = 1;
+	char buff[1024];
+	//把请求数据包的剩余行，读完
+	while (numchars > 0 && strcmp(buff, "\n"))
+	{
+		numchars = get_line(client, buff, sizeof(buff));
+		PRINTF(buff);
+	}
+	FILE* resource = fopen(fileName, "r");
+	if (resource == NULL)//待访问文件不存在
+	{
+		not_found(client);
+	}
+	else
+	{
+		//正式发送资源给浏览器
+		headers(client);
+	}
 }
 DWORD WINAPI accept_request(LPVOID arg)
 {
@@ -187,14 +215,19 @@ DWORD WINAPI accept_request(LPVOID arg)
 		{
 			numchars = get_line(client, buff, sizeof(buff));
 		}
-
+		not_found(client);//不存在
 	}
 	else 
 	{
+		if ((status.st_mode & S_IFMT) == S_IFDIR)//如果是目录
+		{
+			strcat_s(path, "/index.html");
+		}
 
+		server_file(client, path);
 	}
 
-
+	closesocket(client);
 	return 0;
 }
 int main() {

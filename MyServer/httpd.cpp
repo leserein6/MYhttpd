@@ -2,6 +2,8 @@
 #include<ws2tcpip.h>
 //网络通信需要包含的头文件、需要加载的库文件
 #include<WinSock2.h>
+#include<sys/types.h>
+#include<sys/stat.h>
 #pragma comment(lib,"WS2_32.lib")
 using namespace std;
 //void PRINTF(const char* str)
@@ -125,7 +127,10 @@ void unimplement(int client)
 	//向指定的套接字，发送一个提示 还没有实现的错误页面
 
 }
+void not_found(int client)
+{
 
+}
 DWORD WINAPI accept_request(LPVOID arg)
 {
 	char buff[1024];//1K
@@ -167,6 +172,28 @@ DWORD WINAPI accept_request(LPVOID arg)
 	}
 	url[i] = 0;
 	PRINTF(url);
+	//url / 
+	//htdocs/index.html
+	char path[512] = "";
+	sprintf_s(path, "htdocs%s", url);
+	if(path[strlen(path)-1]=='/')strcat_s(path, "index.html");
+	PRINTF(path);
+	struct stat status;
+	if (stat(path, &status) == -1)
+	{
+		//请求包的剩余数据读取完毕
+		//numchars 记录读了多少字符
+		while (numchars > 0 && strcmp(buff, "\n")) 
+		{
+			numchars = get_line(client, buff, sizeof(buff));
+		}
+
+	}
+	else 
+	{
+
+	}
+
 
 	return 0;
 }

@@ -13,7 +13,7 @@ using namespace std;
 #define PRINTF(str) printf("[%s - %d]"#str"=%s", __func__, __LINE__, str);
 void error_die(const char* str)
 {
-	perror(str);//打印错误元音
+	perror(str);//打印错误原因
 	exit(1);//结束程序
 }
 
@@ -137,6 +137,10 @@ void headers(int client)
 	//发送相应包的头信息
 
 }
+void cat(int client, FILE* resource)
+{
+
+}
 //发送资源给客户端
 void server_file(int client, const char* fileName)
 {
@@ -158,8 +162,10 @@ void server_file(int client, const char* fileName)
 		//正式发送资源给浏览器
 		headers(client);
 		//发送请求的资源信息
-
+		cat(client,resource);
+		printf("资源发送完毕!\n");
 	}
+	fclose(resource);
 }
 DWORD WINAPI accept_request(LPVOID arg)
 {

@@ -129,17 +129,41 @@ void unimplement(int client)
 }
 void not_found(int client)
 {
+	
 
 }
 
 void headers(int client)
 {
 	//发送相应包的头信息
+	char buff[1024];
+	strcpy_s(buff, "HTTP/1.0 200 OK\r\n");
+	send(client, buff, strlen(buff), 0);
+
+	strcpy_s(buff, "Server：LesereinHttpd/0.1\r\n");
+	send(client, buff, strlen(buff), 0);
+
+	strcpy_s(buff, "Content-type:text/html\n");
+	send(client, buff, strlen(buff), 0);
+
+	strcpy_s(buff, "\r\n");
+	send(client, buff, strlen(buff), 0);
 
 }
 void cat(int client, FILE* resource)
 {
-
+	//一次读一个字节 然后把该字节发给浏览器
+	char buff[4096];
+	//12345
+	int count = 0;
+	while (1) 
+	{
+		int ret = fread(buff, sizeof(char), sizeof(buff), resource);
+		if (ret <= 0)break;
+		send(client, buff, ret, 0);
+		count += ret;
+	}
+	printf("一共发送[%d]字节给浏览器\n", count);
 }
 //发送资源给客户端
 void server_file(int client, const char* fileName)
@@ -152,7 +176,9 @@ void server_file(int client, const char* fileName)
 		numchars = get_line(client, buff, sizeof(buff));
 		PRINTF(buff);
 	}
-	FILE* resource = fopen(fileName, "r");
+//	FILE* resource = fopen(fileName, "r"); 引发警告
+	FILE* resource;
+	fopen_s(&resource, fileName, "r");
 	if (resource == NULL)//待访问文件不存在
 	{
 		not_found(client);
@@ -164,8 +190,10 @@ void server_file(int client, const char* fileName)
 		//发送请求的资源信息
 		cat(client,resource);
 		printf("资源发送完毕!\n");
+		fclose(resource);//放到else分支里，仅在文件成功打开时关闭
+
 	}
-	fclose(resource);
+	
 }
 DWORD WINAPI accept_request(LPVOID arg)
 {

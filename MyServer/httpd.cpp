@@ -127,15 +127,146 @@ void unimplement(int client)
 	//向指定的套接字，发送一个提示 还没有实现的错误页面
 
 }
+
 void not_found(int client)
 {
-	
 
+	//发送404响应
+	char buff[1024];
+	strcpy_s(buff, "HTTP/1.0 404 NOT FOUND\r\n");
+	send(client, buff, strlen(buff), 0);
+
+	strcpy_s(buff, "Server：LesereinHttpd/0.1\r\n");
+	send(client, buff, strlen(buff), 0);
+
+	strcpy_s(buff, "Content-type:text/html\n");
+	send(client, buff, strlen(buff), 0);
+
+	strcpy_s(buff, "\r\n");
+	send(client, buff, strlen(buff), 0);
+	sprintf_s(buff, "<html>                      \
+		<title>NOT FOUND</title>              \
+		<body>                                \
+		<h2>the resource is unavailable.</h2> \
+		<img src = \"NOTFOUND.jpg\"/>         \ \
+		</body>                               \ \
+		</html>");
+	send(client, buff, strlen(buff), 0);
+	//发送404网页内容
+	/*
+	*<html>
+	*	<title>NOT FOUND</title>
+	*	<body>
+	*		<h2>the resource is unavailable.</h2>
+	*		<img src-"NOTFOUND.pnj"/>
+	*	</body>
+	* </html>
+	*/
 }
+	// 需要添加图片处理函数
+/*
+void serve_image(int client, const char* path)
+{
+	FILE* fp = NULL;
+	fopen_s(&fp, path, "rb");
+	if (fp) {
+		char header[1024];
+		sprintf_s(header, sizeof(header),
+			"HTTP/1.1 200 OK\r\n"
+			"Content-Type: image/png\r\n"
+			"Content-Length: %lld\r\n\r\n",
+			_filelengthi64(_fileno(fp)));
 
+		send(client, header, strlen(header), 0);
+
+		// 发送图片数据
+		char buffer[4096];
+		size_t bytesRead;
+		while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
+			send(client, buffer, bytesRead, 0);
+		}
+		fclose(fp);
+	}
+	else {
+		not_found(client);  // 如果连404图片都不存在，继续返回404
+	}
+}
+*/
+/*
+void not_found(int client)
+{
+	// 404响应内容
+	const char* html = "<html>"
+		"<title>NOT FOUND</title>"
+		"<body>"
+		"<h2>The resource is unavailable.</h2>"
+		"<img src=\"NOTFOUND.jpg\"/>"
+		"</body>"
+		"</html>";
+
+	char buff[1024];
+
+	// 构造标准HTTP响应头
+	sprintf_s(buff, sizeof(buff),
+		"HTTP/1.0 404 NOT FOUND\r\n"
+		"Server: LesereinHttpd/0.1\r\n"
+		"Content-Type: text/html\r\n"
+		"Content-Length: %zu\r\n"
+		"Connection: close\r\n\r\n",  // 注意这里有两个\r\n表示头结束
+		strlen(html));
+
+	send(client, buff, strlen(buff), 0);
+	send(client, html, strlen(html), 0);
+   
+	
+	// 注意：需要单独实现图片请求处理
+	// 当浏览器请求NOTFOUND.png时需要返回真实的图片数据
+}
+//支持跨平台
+
+void serve_image(int client, const char* path)
+{
+	FILE* fp = NULL;
+	fopen_s(&fp, path, "rb"); // 必须用二进制模式
+	if (fp) {
+		// 获取文件大小（跨平台方法）
+		long long file_size;
+#if defined(_WIN32)
+		_fseeki64(fp, 0, SEEK_END);
+		file_size = _ftelli64(fp);
+		_fseeki64(fp, 0, SEEK_SET);
+#else
+		fseek(fp, 0, SEEK_END);
+		file_size = ftell(fp);
+		fseek(fp, 0, SEEK_SET);
+#endif
+
+		// 构造HTTP头
+		char header[1024];
+		sprintf_s(header, sizeof(header),
+			"HTTP/1.1 200 OK\r\n"
+			"Content-Type: image/png\r\n"
+			"Content-Length: %lld\r\n\r\n",
+			file_size);
+
+		send(client, header, strlen(header), 0);
+
+		// 发送图片数据
+		char buffer[4096];
+		size_t bytesRead;
+		while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
+			send(client, buffer, bytesRead, 0);
+		}
+		fclose(fp);
+	}
+	else {
+		not_found(client); // 连404图片都不存在时继续返回404
+	}
+}
+*/
 void headers(int client)
 {
-	//发送相应包的头信息
+	//发送响应包的头信息
 	char buff[1024];
 	strcpy_s(buff, "HTTP/1.0 200 OK\r\n");
 	send(client, buff, strlen(buff), 0);
@@ -146,6 +277,8 @@ void headers(int client)
 	strcpy_s(buff, "Content-type:text/html\n");
 	send(client, buff, strlen(buff), 0);
 
+	/*char buf[1024];
+	sprintf(buf,"Content-Type: %s\r\n",type);*/
 	strcpy_s(buff, "\r\n");
 	send(client, buff, strlen(buff), 0);
 
@@ -181,14 +314,16 @@ void server_file(int client, const char* fileName)
 	//fopen_s(&resource, fileName, "r");//r 是 rt 文本文件
 	//图片打不开的bug↑ 
 	//fopen_s(&resource, fileName, "rb");
-		if (strcmp(fileName, "htdocs/index.html") == 0)
+	/*if (strcmp(fileName, "htdocs/index.html") == 0)
 		{
 			fopen_s(&resource, fileName, "r");
 		}
-		else {
+	else {
 			fopen_s(&resource, fileName, "rb");
-		}
-		if (resource == NULL)//待访问文件不存在
+		}*/
+	//统一使用二进制模式打开
+	fopen_s(&resource, fileName, "rb");
+	if (resource == NULL)//待访问文件不存在
 		{
 			not_found(client);
 		}
@@ -197,10 +332,8 @@ void server_file(int client, const char* fileName)
 		//发送请求的资源信息
 		cat(client,resource);
 		printf("资源发送完毕!\n");
-		fclose(resource);//放到else分支里，仅在文件成功打开时关闭
+		if(resource)fclose(resource);//防止关闭空文件
 
-	
-	
 }
 DWORD WINAPI accept_request(LPVOID arg)
 {
@@ -249,6 +382,16 @@ DWORD WINAPI accept_request(LPVOID arg)
 	sprintf_s(path, "htdocs%s", url);
 	if(path[strlen(path)-1]=='/')strcat_s(path, "index.html");
 	PRINTF(path);
+	/*const char* ext = strrchr(path, '.');
+	if (ext)
+	{
+		if (strcmp(ext, ".png") == 0)
+		{
+			serve_image(client, path);
+			closesocket(client);
+			return 0;
+		}
+	}*/
 	struct stat status;
 	if (stat(path, &status) == -1)
 	{
@@ -266,6 +409,13 @@ DWORD WINAPI accept_request(LPVOID arg)
 		{
 			strcat_s(path, "/index.html");
 		}
+		/*if (ext && strcmp(ext, ".png") == 0)
+		{
+			serve_image(client, path);
+		}*/
+	/*	else {
+			server_file(client, path);
+		}*/
 
 		server_file(client, path);
 	}

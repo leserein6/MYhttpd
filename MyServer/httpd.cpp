@@ -177,14 +177,21 @@ void server_file(int client, const char* fileName)
 		PRINTF(buff);
 	}
 //	FILE* resource = fopen(fileName, "r"); 引发警告
-	FILE* resource;
-	fopen_s(&resource, fileName, "r");
-	if (resource == NULL)//待访问文件不存在
-	{
-		not_found(client);
-	}
-	else
-	{
+	FILE* resource=NULL;
+	//fopen_s(&resource, fileName, "r");//r 是 rt 文本文件
+	//图片打不开的bug↑ 
+	//fopen_s(&resource, fileName, "rb");
+		if (strcmp(fileName, "htdocs/index.html") == 0)
+		{
+			fopen_s(&resource, fileName, "r");
+		}
+		else {
+			fopen_s(&resource, fileName, "rb");
+		}
+		if (resource == NULL)//待访问文件不存在
+		{
+			not_found(client);
+		}
 		//正式发送资源给浏览器
 		headers(client);
 		//发送请求的资源信息
@@ -192,7 +199,7 @@ void server_file(int client, const char* fileName)
 		printf("资源发送完毕!\n");
 		fclose(resource);//放到else分支里，仅在文件成功打开时关闭
 
-	}
+	
 	
 }
 DWORD WINAPI accept_request(LPVOID arg)

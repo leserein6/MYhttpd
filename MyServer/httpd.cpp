@@ -1,5 +1,6 @@
 #include<bits/stdc++.h>
 #include<ws2tcpip.h>
+
 //网络通信需要包含的头文件、需要加载的库文件
 #include<WinSock2.h>
 #include<sys/types.h>
@@ -127,7 +128,38 @@ void unimplement(int client)
 	//向指定的套接字，发送一个提示 还没有实现的错误页面
 
 }
+void not_found(int client)
+{
+	// 定义404页面HTML内容
+	const char* html = "<html>"
+		"<title>NOT FOUND</title>"
+		"<body>"
+		"<h2>The resource is unavailable.</h2>"
+		"<img src=\"NOTFOUND.jpg\"/>"
+		"</body>"
+		"</html>";
 
+	// 计算内容长度
+	int content_length = strlen(html);
+
+	// 构造完整的HTTP响应头（单次格式化保证原子性）
+	char header[1024];
+	sprintf_s(header, sizeof(header),
+		"HTTP/1.0 404 NOT FOUND\r\n"
+		"Server: LesereinHttpd/0.1\r\n"
+		"Content-Type: text/html\r\n"
+		"Content-Length: %d\r\n"
+		"Connection: close\r\n\r\n",  // 注意两个\r\n结束头
+		content_length);
+
+	// 发送响应（添加错误检查）
+	if (send(client, header, strlen(header), 0) == SOCKET_ERROR ||
+		send(client, html, content_length, 0) == SOCKET_ERROR) {
+		closesocket(client);
+		return;
+	}
+}
+/*
 void not_found(int client)
 {
 
@@ -162,7 +194,7 @@ void not_found(int client)
 	*	</body>
 	* </html>
 	*/
-}
+
 	// 需要添加图片处理函数
 /*
 void serve_image(int client, const char* path)
@@ -333,7 +365,6 @@ void server_file(int client, const char* fileName)
 		cat(client,resource);
 		printf("资源发送完毕!\n");
 		if(resource)fclose(resource);//防止关闭空文件
-
 }
 DWORD WINAPI accept_request(LPVOID arg)
 {
@@ -416,10 +447,8 @@ DWORD WINAPI accept_request(LPVOID arg)
 	/*	else {
 			server_file(client, path);
 		}*/
-
 		server_file(client, path);
 	}
-
 	closesocket(client);
 	return 0;
 }

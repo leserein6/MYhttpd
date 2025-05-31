@@ -71,7 +71,8 @@ int startup(unsigned short* port)
 			{
 				error_die("getsockname");
 			}
-			*port = server_addr.sin_port;
+			//*port = server_addr.sin_port;修改1 处理动态端口
+			*port = ntohs(server_addr.sin_port);
 		}
 		//创建监听队列
 		if (listen(server_socket, 5) < 0)
@@ -453,7 +454,7 @@ DWORD WINAPI accept_request(LPVOID arg)
 	return 0;
 }
 int main() {
-	unsigned short port = 8000;//如果是0 动态端口
+	unsigned short port = 0;//如果是0 动态端口
 	//80端口被占用了
 	int server_sock = startup(&port);
 	printf("httpd服务已经启动，正在监听%d 端口...", port);
